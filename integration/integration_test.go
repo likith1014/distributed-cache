@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/likith1014/distributed-cache/internal/cache"
 	"github.com/likith1014/distributed-cache/internal/cluster"
 	"github.com/likith1014/distributed-cache/internal/storage"
-	"os"
 )
 
 // TestIntegration_CacheWithReplication tests the full stack:
@@ -36,8 +37,9 @@ func TestIntegration_CacheWithReplication(t *testing.T) {
 	}
 
 	// Wire replication: each node replicates to the other two
+	logger := zap.NewNop()
 	for i := 0; i < 3; i++ {
-		mgrs[i] = cluster.NewReplicationManager(ring, zap.NewNop())
+		mgrs[i] = cluster.NewReplicationManager(ring, logger)
 		for j := 0; j < 3; j++ {
 			if j != i {
 				mgrs[i].AddReplica(replicas[j])

@@ -3,6 +3,8 @@ package cluster
 import (
 	"testing"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func TestReplicationManager_BasicReplication(t *testing.T) {
