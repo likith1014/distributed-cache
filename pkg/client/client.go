@@ -16,24 +16,12 @@ import (
 
 // Options configures the cache client.
 type Options struct {
-	// Nodes is the list of seed node addresses (host:port).
-	Nodes []string
-
-	// ConnectTimeout is how long to wait for initial connection.
+	Logger         *zap.Logger
+	Nodes          []string
 	ConnectTimeout time.Duration
-
-	// RequestTimeout is the per-operation timeout.
 	RequestTimeout time.Duration
-
-	// MaxRetries controls how many times a failed op is retried
-	// (on a different node if possible).
-	MaxRetries int
-
-	// VirtualNodes controls the consistent hash ring density.
-	VirtualNodes int
-
-	// Logger is optional. Defaults to no-op.
-	Logger *zap.Logger
+	MaxRetries     int
+	VirtualNodes   int
 }
 
 func (o *Options) withDefaults() *Options {
@@ -59,24 +47,22 @@ func (o *Options) withDefaults() *Options {
 // It routes requests to the correct node using consistent hashing
 // and retries on a different node if the primary is unavailable.
 type Client struct {
-	opts    *Options
-	ring    *cluster.Ring
-	conns   map[string]*nodeConn
-	mu      sync.RWMutex
-	logger  *zap.Logger
-
-	// Stats
+	opts        *Options
+	ring        *cluster.Ring
+	conns       map[string]*nodeConn
+	logger      *zap.Logger
 	totalGets   int64
 	totalPuts   int64
 	totalMisses int64
 	totalErrors int64
+	mu          sync.RWMutex
 }
 
 // nodeConn represents a connection to a single cache node.
 type nodeConn struct {
+	lastErr time.Time
 	node    cluster.Node
 	healthy bool
-	lastErr time.Time
 }
 
 // New creates a new distributed cache client.

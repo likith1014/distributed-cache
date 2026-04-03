@@ -32,15 +32,15 @@ func (s State) String() string {
 
 // LogEntry is a single replicated command in the Raft log.
 type LogEntry struct {
+	Command []byte
 	Term    uint64
 	Index   uint64
-	Command []byte
 }
 
 // VoteRequest is sent by candidates during leader election.
 type VoteRequest struct {
-	Term         uint64
 	CandidateID  string
+	Term         uint64
 	LastLogIndex uint64
 	LastLogTerm  uint64
 }
@@ -53,11 +53,11 @@ type VoteResponse struct {
 
 // AppendRequest is sent by the leader to replicate log entries.
 type AppendRequest struct {
-	Term         uint64
 	LeaderID     string
+	Entries      []LogEntry
+	Term         uint64
 	PrevLogIndex uint64
 	PrevLogTerm  uint64
-	Entries      []LogEntry
 	CommitIndex  uint64
 }
 
@@ -74,40 +74,27 @@ type StateMachine interface {
 
 // Node is a Raft consensus participant.
 type Node struct {
-	mu sync.Mutex
-
-	id      string
-	peers   []string
-	state   atomic.Int32
-	logger  *zap.Logger
-
-	// Persistent state (survive restarts)
-	currentTerm uint64
-	votedFor    string
-	log         []LogEntry
-
-	// Volatile state
-	commitIndex uint64
-	lastApplied uint64
-	leaderID    string
-
-	// Leader state (reinitialized after election)
-	nextIndex  map[string]uint64
-	matchIndex map[string]uint64
-
-	// Timing
-	electionTimeout  time.Duration
+	lastHeartbeat     time.Time
+	stateMachine      StateMachine
+	nextIndex         map[string]uint64
+	OnBecomeFollower  func()
+	OnBecomeLeader    func()
+	logger            *zap.Logger
+	applyCh           chan LogEntry
+	stopCh            chan struct{}
+	matchIndex        map[string]uint64
+	leaderID          string
+	votedFor          string
+	id                string
+	log               []LogEntry
+	peers             []string
+	lastApplied       uint64
+	commitIndex       uint64
+	electionTimeout   time.Duration
 	heartbeatInterval time.Duration
-	lastHeartbeat    time.Time
-
-	// Channels
-	stopCh        chan struct{}
-	applyCh       chan LogEntry
-	stateMachine  StateMachine
-
-	// Callbacks
-	OnBecomeLeader   func()
-	OnBecomeFollower func()
+	currentTerm       uint64
+	mu                sync.Mutex
+	state             atomic.Int32
 }
 
 // NewNode creates a Raft node.

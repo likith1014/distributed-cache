@@ -25,13 +25,13 @@ type CacheMetrics struct {
 	TTLExpired    prometheus.Counter
 
 	// Cluster metrics
-	NodeCount     prometheus.Gauge
+	NodeCount      prometheus.Gauge
 	ReplicationLag prometheus.Histogram
-	RaftTerm      prometheus.Gauge
-	IsLeader      prometheus.Gauge
+	RaftTerm       prometheus.Gauge
+	IsLeader       prometheus.Gauge
 
 	// System metrics
-	MemoryBytes   prometheus.Gauge
+	MemoryBytes    prometheus.Gauge
 	GoroutineCount prometheus.Gauge
 }
 

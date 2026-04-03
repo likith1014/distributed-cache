@@ -12,27 +12,27 @@ import (
 
 // Snapshot is a point-in-time capture of all cache key-value pairs.
 type Snapshot struct {
-	Version   uint64            `json:"version"`
-	CreatedAt time.Time         `json:"created_at"`
-	NodeID    string            `json:"node_id"`
+	CreatedAt time.Time            `json:"created_at"`
 	Entries   map[string]SnapEntry `json:"entries"`
+	NodeID    string               `json:"node_id"`
+	Version   uint64               `json:"version"`
 }
 
 // SnapEntry holds value and optional TTL deadline.
 type SnapEntry struct {
-	Value     []byte    `json:"v"`
 	ExpiresAt time.Time `json:"exp,omitempty"`
+	Value     []byte    `json:"v"`
 }
 
 // SnapshotManager handles periodic snapshot creation and WAL compaction.
 // After a snapshot is taken, the WAL is rotated — log replay only needs
 // to start from the snapshot rather than the beginning of time.
 type SnapshotManager struct {
-	mu      sync.Mutex
+	wal     *WAL
 	dir     string
 	nodeID  string
 	version uint64
-	wal     *WAL
+	mu      sync.Mutex
 }
 
 // NewSnapshotManager creates a snapshot manager backed by the given directory.

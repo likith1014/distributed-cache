@@ -23,25 +23,25 @@ const (
 
 // WALEntry is a single operation record in the write-ahead log.
 type WALEntry struct {
-	Op        OpType    `json:"op"`
+	Timestamp time.Time `json:"ts"`
 	Key       string    `json:"key"`
 	Value     []byte    `json:"value,omitempty"`
-	TTL       int64     `json:"ttl,omitempty"` // nanoseconds
-	Timestamp time.Time `json:"ts"`
+	TTL       int64     `json:"ttl,omitempty"`
 	Checksum  uint32    `json:"checksum"`
+	Op        OpType    `json:"op"`
 }
 
 // WAL is a simple append-only write-ahead log for crash recovery.
 // Every Put/Delete is written to disk before being applied to memory.
 // On restart, the WAL is replayed to restore state.
 type WAL struct {
-	mu       sync.Mutex
-	dir      string
 	file     *os.File
 	writer   *bufio.Writer
+	dir      string
 	sequence uint64
 	size     int64
-	maxSize  int64 // rotate when exceeded
+	maxSize  int64
+	mu       sync.Mutex
 }
 
 // NewWAL opens (or creates) a WAL in the given directory.

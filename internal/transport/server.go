@@ -57,10 +57,10 @@ func (s *CacheGRPCServer) Get(ctx context.Context, req *GetRequest) (*GetRespons
 	}
 
 	return &GetResponse{
-		Value:      val,
-		Found:      found,
-		NodeId:     s.nodeID,
-		LatencyUs:  latency.Microseconds(),
+		Value:     val,
+		Found:     found,
+		NodeId:    s.nodeID,
+		LatencyUs: latency.Microseconds(),
 	}, nil
 }
 
@@ -175,8 +175,8 @@ func (s *CacheGRPCServer) Stats(ctx context.Context, req *StatsRequest) (*StatsR
 	engineStats := s.engine.Stats()
 
 	resp := &StatsResponse{
-		NodeId:  s.nodeID,
-		Policy:  asString(engineStats["policy"]),
+		NodeId:   s.nodeID,
+		Policy:   asString(engineStats["policy"]),
 		TotalOps: asInt64(engineStats["total_ops"]),
 	}
 
@@ -233,11 +233,11 @@ type GetRequest struct {
 	ClientId string
 }
 type GetResponse struct {
-	Value      []byte
-	Found      bool
-	TtlMs      int64
-	NodeId     string
-	LatencyUs  int64
+	NodeId    string
+	Value     []byte
+	TtlMs     int64
+	LatencyUs int64
+	Found     bool
 }
 type PutRequest struct {
 	Key   string
@@ -246,9 +246,9 @@ type PutRequest struct {
 	Sync  bool
 }
 type PutResponse struct {
-	Success bool
 	NodeId  string
 	Version int64
+	Success bool
 }
 type DeleteRequest struct {
 	Key       string
@@ -270,25 +270,25 @@ type PutManyRequest struct {
 	TtlMs   int64
 }
 type PutManyResponse struct {
-	Stored int32
 	Failed []string
+	Stored int32
 }
 type StatsRequest struct{}
 type StatsResponse struct {
-	NodeId     string
-	Policy     string
-	Size       int64
-	Capacity   int64
-	Hits       int64
-	Misses     int64
-	HitRate    float64
-	Evictions  int64
-	TotalOps   int64
+	NodeId      string
+	Policy      string
+	LeaderId    string
+	Cluster     []*NodeSummary
+	HitRate     float64
+	Misses      int64
+	Hits        int64
+	Evictions   int64
+	TotalOps    int64
 	MemoryBytes int64
-	IsLeader   bool
-	RaftTerm   uint64
-	LeaderId   string
-	Cluster    []*NodeSummary
+	RaftTerm    uint64
+	Capacity    int64
+	Size        int64
+	IsLeader    bool
 }
 type FlushRequest struct{ Confirm bool }
 type FlushResponse struct {
@@ -318,10 +318,10 @@ type CacheService_WatchServer interface {
 	Context() context.Context
 }
 type WatchEvent struct {
-	EventType int32
 	Key       string
 	Value     []byte
 	Timestamp int64
+	EventType int32
 }
 
 // ── Helper functions ───────────────────────────────────────────

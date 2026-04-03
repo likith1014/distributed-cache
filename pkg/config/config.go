@@ -10,10 +10,10 @@ import (
 
 // Config is the top-level server configuration.
 type Config struct {
+	Storage StorageConfig `yaml:"storage"`
 	Node    NodeConfig    `yaml:"node"`
 	Cache   CacheConfig   `yaml:"cache"`
 	Cluster ClusterConfig `yaml:"cluster"`
-	Storage StorageConfig `yaml:"storage"`
 	Server  ServerConfig  `yaml:"server"`
 }
 
@@ -35,9 +35,9 @@ type ClusterConfig struct {
 }
 
 type StorageConfig struct {
-	WALDir     string `yaml:"wal_dir"`
-	WALMaxMB   int    `yaml:"wal_max_mb"`
+	WALDir      string `yaml:"wal_dir"`
 	SnapshotDir string `yaml:"snapshot_dir"`
+	WALMaxMB    int    `yaml:"wal_max_mb"`
 }
 
 type ServerConfig struct {
