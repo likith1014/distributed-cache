@@ -1,0 +1,22 @@
+node:
+  id: node-1
+  address: localhost
+
+cache:
+  policy: lru
+  capacity: 1000000
+  cleanup_interval: 1s
+
+cluster:
+  peers: []
+  virtual_nodes: 150
+  replicas: 3
+
+storage:
+  wal_dir: ./data/wal
+  wal_max_mb: 512
+  snapshot_dir: ./data/snapshots
+
+server:
+  grpc_port: 7070
+  http_port: 8080

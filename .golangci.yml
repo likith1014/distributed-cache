@@ -1,0 +1,51 @@
+run:
+  timeout: 5m
+  go: "1.22"
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - misspell
+    - unconvert
+    - unparam
+    - bodyclose
+    - contextcheck
+    - dupl
+    - exhaustive
+    - noctx
+    - prealloc
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - whitespace
+
+linters-settings:
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+      - name: var-naming
+        severity: warning
+  govet:
+    enable-all: true
+  gofmt:
+    simplify: true
+
+issues:
+  exclude-rules:
+    - path: "_test.go"
+      linters:
+        - dupl
+        - unparam
+    - path: "bench/"
+      linters:
+        - dupl
+  max-issues-per-linter: 0
+  max-same-issues: 0

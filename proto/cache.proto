@@ -1,0 +1,241 @@
+syntax = "proto3";
+
+package cache.v1;
+
+option go_package = "github.com/likith1014/distributed-cache/proto/cachepb";
+
+// CacheService is the primary gRPC interface for cache operations.
+service CacheService {
+  // Get retrieves a value by key.
+  rpc Get(GetRequest) returns (GetResponse);
+
+  // Put stores a key-value pair with optional TTL.
+  rpc Put(PutRequest) returns (PutResponse);
+
+  // Delete removes a key.
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+
+  // GetMany retrieves multiple keys in a single round-trip.
+  rpc GetMany(GetManyRequest) returns (GetManyResponse);
+
+  // PutMany stores multiple key-value pairs atomically.
+  rpc PutMany(PutManyRequest) returns (PutManyResponse);
+
+  // Stats returns node statistics and cache health.
+  rpc Stats(StatsRequest) returns (StatsResponse);
+
+  // Flush removes all keys from the cache.
+  rpc Flush(FlushRequest) returns (FlushResponse);
+
+  // Watch streams key change events to the client (pub/sub).
+  rpc Watch(WatchRequest) returns (stream WatchEvent);
+}
+
+// ClusterService handles inter-node communication.
+service ClusterService {
+  // Heartbeat is sent by leaders to maintain authority.
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+
+  // RequestVote is sent by Raft candidates during election.
+  rpc RequestVote(VoteRequest) returns (VoteResponse);
+
+  // AppendEntries replicates log entries from leader to followers.
+  rpc AppendEntries(AppendEntriesRequest) returns (AppendEntriesResponse);
+
+  // Replicate syncs a key-value pair to a replica node.
+  rpc Replicate(ReplicateRequest) returns (ReplicateResponse);
+
+  // NodeInfo returns cluster membership information.
+  rpc NodeInfo(NodeInfoRequest) returns (NodeInfoResponse);
+}
+
+// ── Cache Operations ───────────────────────────────────────────
+
+message GetRequest {
+  string key = 1;
+  string client_id = 2; // for tracing
+}
+
+message GetResponse {
+  bytes  value     = 1;
+  bool   found     = 2;
+  int64  ttl_ms    = 3; // remaining TTL in milliseconds, 0 = no expiry
+  string node_id   = 4; // which node served this request
+  int64  latency_us = 5; // server-side latency in microseconds
+}
+
+message PutRequest {
+  string key    = 1;
+  bytes  value  = 2;
+  int64  ttl_ms = 3; // 0 = no expiry
+  bool   sync   = 4; // true = wait for replication ack before returning
+}
+
+message PutResponse {
+  bool   success  = 1;
+  string node_id  = 2;
+  int64  version  = 3; // monotonic version for optimistic locking
+}
+
+message DeleteRequest {
+  string key       = 1;
+  bool   propagate = 2; // true = delete from all replicas
+}
+
+message DeleteResponse {
+  bool deleted = 1;
+}
+
+message GetManyRequest {
+  repeated string keys      = 1;
+  int32           max_keys  = 2; // cap at this many keys (0 = no limit)
+}
+
+message GetManyResponse {
+  map<string, CacheEntry> entries = 1;
+  repeated string         missing = 2; // keys not found
+  int32                   hits    = 3;
+  int32                   misses  = 4;
+}
+
+message PutManyRequest {
+  repeated KeyValue entries = 1;
+  int64             ttl_ms  = 2; // applied to all entries
+}
+
+message PutManyResponse {
+  int32            stored  = 1;
+  repeated string  failed  = 2;
+}
+
+message StatsRequest {}
+
+message StatsResponse {
+  string node_id       = 1;
+  string policy        = 2; // lru or lfu
+  int64  size          = 3; // current key count
+  int64  capacity      = 4;
+  int64  hits          = 5;
+  int64  misses        = 6;
+  double hit_rate      = 7;
+  int64  evictions     = 8;
+  int64  total_ops     = 9;
+  int64  memory_bytes  = 10;
+  bool   is_leader     = 11;
+  uint64 raft_term     = 12;
+  string leader_id     = 13;
+  repeated NodeSummary cluster = 14;
+}
+
+message FlushRequest {
+  bool confirm = 1; // safety flag — must be true
+}
+
+message FlushResponse {
+  bool    success      = 1;
+  int64   keys_removed = 2;
+}
+
+message WatchRequest {
+  repeated string key_prefixes = 1; // subscribe to keys matching these prefixes
+}
+
+message WatchEvent {
+  enum EventType {
+    PUT    = 0;
+    DELETE = 1;
+    EXPIRE = 2;
+  }
+  EventType event_type = 1;
+  string    key        = 2;
+  bytes     value      = 3;
+  int64     timestamp  = 4; // Unix milliseconds
+}
+
+// ── Shared Messages ────────────────────────────────────────────
+
+message CacheEntry {
+  bytes value   = 1;
+  int64 ttl_ms  = 2;
+  int64 version = 3;
+}
+
+message KeyValue {
+  string key   = 1;
+  bytes  value = 2;
+}
+
+message NodeSummary {
+  string node_id = 1;
+  string address = 2;
+  string status  = 3; // alive, suspect, dead
+  bool   is_leader = 4;
+}
+
+// ── Cluster / Raft Messages ────────────────────────────────────
+
+message HeartbeatRequest {
+  string leader_id    = 1;
+  uint64 term         = 2;
+  uint64 commit_index = 3;
+}
+
+message HeartbeatResponse {
+  bool   success      = 1;
+  uint64 term         = 2;
+}
+
+message VoteRequest {
+  uint64 term           = 1;
+  string candidate_id   = 2;
+  uint64 last_log_index = 3;
+  uint64 last_log_term  = 4;
+}
+
+message VoteResponse {
+  uint64 term         = 1;
+  bool   vote_granted = 2;
+}
+
+message AppendEntriesRequest {
+  uint64            term           = 1;
+  string            leader_id      = 2;
+  uint64            prev_log_index = 3;
+  uint64            prev_log_term  = 4;
+  repeated LogEntry entries        = 5;
+  uint64            commit_index   = 6;
+}
+
+message AppendEntriesResponse {
+  uint64 term    = 1;
+  bool   success = 2;
+}
+
+message LogEntry {
+  uint64 term    = 1;
+  uint64 index   = 2;
+  bytes  command = 3;
+}
+
+message ReplicateRequest {
+  string key    = 1;
+  bytes  value  = 2;
+  int64  ttl_ms = 3;
+  uint64 term   = 4;
+  uint64 seq    = 5;
+}
+
+message ReplicateResponse {
+  bool success = 1;
+}
+
+message NodeInfoRequest {}
+
+message NodeInfoResponse {
+  string node_id    = 1;
+  string address    = 2;
+  uint64 term       = 3;
+  bool   is_leader  = 4;
+  string leader_id  = 5;
+  repeated NodeSummary peers = 6;
+}

@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: 'distributed-cache'
+    static_configs:
+      - targets:
+          - 'node-1:8081'
+          - 'node-2:8082'
+          - 'node-3:8083'
+          - 'node-4:8084'
+    metrics_path: /metrics
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

@@ -1,0 +1,79 @@
+version: '3.9'
+
+services:
+  node-1:
+    build: .
+    command: ["/app/server", "--node-id", "node-1", "--grpc-port", "7071", "--http-port", "8081"]
+    ports:
+      - "7071:7071"
+      - "8081:8081"
+    environment:
+      - PEERS=node-2:7072,node-3:7073,node-4:7074
+    volumes:
+      - node1-data:/data
+    networks: [cache-net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  node-2:
+    build: .
+    command: ["/app/server", "--node-id", "node-2", "--grpc-port", "7072", "--http-port", "8082"]
+    ports:
+      - "7072:7072"
+      - "8082:8082"
+    environment:
+      - PEERS=node-1:7071,node-3:7073,node-4:7074
+    volumes:
+      - node2-data:/data
+    networks: [cache-net]
+
+  node-3:
+    build: .
+    command: ["/app/server", "--node-id", "node-3", "--grpc-port", "7073", "--http-port", "8083"]
+    ports:
+      - "7073:7073"
+      - "8083:8083"
+    environment:
+      - PEERS=node-1:7071,node-2:7072,node-4:7074
+    volumes:
+      - node3-data:/data
+    networks: [cache-net]
+
+  node-4:
+    build: .
+    command: ["/app/server", "--node-id", "node-4", "--grpc-port", "7074", "--http-port", "8084"]
+    ports:
+      - "7074:7074"
+      - "8084:8084"
+    environment:
+      - PEERS=node-1:7071,node-2:7072,node-3:7073
+    volumes:
+      - node4-data:/data
+    networks: [cache-net]
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
+    volumes:
+      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks: [cache-net]
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks: [cache-net]
+
+volumes:
+  node1-data:
+  node2-data:
+  node3-data:
+  node4-data:
+
+networks:
+  cache-net:
+    driver: bridge
