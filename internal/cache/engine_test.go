@@ -101,7 +101,7 @@ func TestEngine_Flush(t *testing.T) {
 	e.Flush()
 
 	stats := e.Stats()
-	if size, ok := stats["size"].(int); !ok || size != 0 {
+	if stats["size"].(int) != 0 {
 		t.Errorf("expected size=0 after flush, got %v", stats["size"])
 	}
 }
