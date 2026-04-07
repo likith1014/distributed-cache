@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/likith1014/distributed-cache/internal/cache"
 	"github.com/likith1014/distributed-cache/internal/cluster"
 	"github.com/likith1014/distributed-cache/internal/storage"
-	"os"
 )
 
 // TestIntegration_CacheWithReplication tests the full stack:
