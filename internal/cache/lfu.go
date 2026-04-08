@@ -22,13 +22,13 @@ type freqBucket struct {
 // Uses the min-frequency trick: track the current minimum frequency and
 // a map from frequency → set of keys at that frequency.
 type LFU struct {
-	mu       sync.Mutex
-	capacity int
-	minFreq  int
-	items    map[string]*lfuEntry
-	freqs    map[int]*freqBucket
-	hits     int64
-	misses   int64
+	mu        sync.Mutex
+	capacity  int
+	minFreq   int
+	items     map[string]*lfuEntry
+	freqs     map[int]*freqBucket
+	hits      int64
+	misses    int64
 	evictions int64
 }
 
@@ -88,10 +88,13 @@ func (c *LFU) Put(key string, value []byte, ttl time.Duration) {
 		c.evictLFU()
 	}
 
-	e := &lfuEntry{key: key, value: value, freq: 1, expiresAt: expiresAt}
-	c.items[key] = e
-	c.addToFreqBucket(1, key)
+	e := &lfuEntry{key: key, value: value, freq: 1}
+	if c.freqs[1] == nil {
+		c.freqs[1] = &freqBucket{keys: make(map[string]struct{})}
+	}
+	c.freqs[1].keys[key] = struct{}{}
 	c.minFreq = 1
+	c.items[key] = e
 }
 
 // Delete removes a key.
@@ -118,8 +121,11 @@ func (c *LFU) incrementFreq(e *lfuEntry) {
 	c.removeFromFreqBucket(oldFreq, e.key)
 	e.freq++
 	c.addToFreqBucket(e.freq, e.key)
-	if c.minFreq == oldFreq && len(c.freqs[oldFreq].keys) == 0 {
-		c.minFreq++
+	if c.minFreq == oldFreq {
+			if _, exists := c.freqs[oldFreq]; !exists {
+				c.minFreq++
+			}
+		}
 	}
 }
 
